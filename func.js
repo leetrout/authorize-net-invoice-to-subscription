@@ -2,7 +2,7 @@ require("dotenv").config();
 const axios = require("axios").default;
 const ApiContracts = require("authorizenet").APIContracts;
 const ApiControllers = require("authorizenet").APIControllers;
-const SDKConstants = require("authorizenet").SDKConstants;
+const Constants = require("authorizenet").Constants;
 
 const useProd =
   process.env.AUTH_USE_PROD && process.env.AUTH_USE_PROD.toLowerCase() == "yes";
@@ -45,7 +45,7 @@ async function getTransaction(req, res, txID) {
   );
 
   if (useProd) {
-    ctrl.setEnvironment(SDKConstants.endpoint.production);
+    ctrl.setEnvironment(Constants.endpoint.production);
   }
 
   ctrl.execute(async function () {
@@ -92,7 +92,7 @@ async function getProfile(req, res, profileID) {
   );
 
   if (useProd) {
-    ctrl.setEnvironment(SDKConstants.endpoint.production);
+    ctrl.setEnvironment(Constants.endpoint.production);
   }
 
   ctrl.execute(async function () {
