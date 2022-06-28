@@ -132,9 +132,11 @@ async function addSubscriptionIds(req, res, subIDs) {
       headers: "content-type: application/json",
     })
     .then(() => {
+      console.info("updated payload sent: ", process.env.HOOKDECK_URL);
       res.send("ok");
     })
     .catch((err) => {
+      console.error(err);
       res.status(500).send("error sending modified payload");
     });
 }
