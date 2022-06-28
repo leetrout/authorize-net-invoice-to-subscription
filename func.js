@@ -7,7 +7,7 @@ const SDKConstants = require("authorizenet").SDKConstants;
 const useProd =
   process.env.AUTH_USE_PROD && process.env.AUTH_USE_PROD.toLowerCase() == "yes";
 
-const subscriptionForInvoice = (req, res) => {
+exports.subscriptionForInvoice = async (req, res) => {
   if (req.get("content-type") !== "application/json") {
     console.error("request is not application/json");
     res.status(400).send(`bad request`);
@@ -16,21 +16,19 @@ const subscriptionForInvoice = (req, res) => {
 
   switch (req.body.payload.entityName) {
     case "subscription":
-      return addSubscriptionIds(req, res, [req.body.payload.id]);
+      return await addSubscriptionIds(req, res, [req.body.payload.id]);
     case "transaction":
-      return getTransaction(req, res, req.body.payload.id);
+      return await getTransaction(req, res, req.body.payload.id);
     default:
       console.info("payload id", req.body.payload.id);
       console.info("payload kind", req.body.payload.entityName);
-      console.error("request is not transaction");
+      console.error("request kind is not supported");
       res.status(400).send("bad request");
       return;
   }
 };
 
-exports.subscriptionForInvoice = subscriptionForInvoice;
-
-function getTransaction(req, res, txID) {
+async function getTransaction(req, res, txID) {
   const merchantAuthenticationType =
     new ApiContracts.MerchantAuthenticationType();
   merchantAuthenticationType.setName(process.env.AUTH_API_LOGIN_ID);
@@ -40,7 +38,7 @@ function getTransaction(req, res, txID) {
 
   const txDetailsReq = new ApiContracts.GetTransactionDetailsRequest();
   txDetailsReq.setMerchantAuthentication(merchantAuthenticationType);
-  txDetailsReq.setTransId(req.body.payload.id);
+  txDetailsReq.setTransId(txID);
 
   const ctrl = new ApiControllers.GetTransactionDetailsController(
     txDetailsReq.getJSON()
@@ -50,7 +48,7 @@ function getTransaction(req, res, txID) {
     ctrl.setEnvironment(SDKConstants.endpoint.production);
   }
 
-  ctrl.execute(function () {
+  ctrl.execute(async function () {
     const apiResponse = ctrl.getResponse();
     const response = new ApiContracts.GetTransactionDetailsResponse(
       apiResponse
@@ -61,7 +59,7 @@ function getTransaction(req, res, txID) {
         response.getMessages().getResultCode() ==
         ApiContracts.MessageTypeEnum.OK
       ) {
-        return getProfile(
+        return await getProfile(
           req,
           res,
           response.getTransaction().getProfile().customerProfileId
@@ -77,7 +75,7 @@ function getTransaction(req, res, txID) {
   });
 }
 
-function getProfile(req, res, profileID) {
+async function getProfile(req, res, profileID) {
   const merchantAuthenticationType =
     new ApiContracts.MerchantAuthenticationType();
   merchantAuthenticationType.setName(process.env.AUTH_API_LOGIN_ID);
@@ -97,7 +95,7 @@ function getProfile(req, res, profileID) {
     ctrl.setEnvironment(SDKConstants.endpoint.production);
   }
 
-  ctrl.execute(function () {
+  ctrl.execute(async function () {
     const apiResponse = ctrl.getResponse();
     const response = new ApiContracts.GetCustomerProfileResponse(apiResponse);
 
@@ -127,9 +125,9 @@ function getProfile(req, res, profileID) {
   });
 }
 
-function addSubscriptionIds(req, res, subIDs) {
+async function addSubscriptionIds(req, res, subIDs) {
   req.body.subscriptionIds = subIDs;
-  axios
+  return axios
     .post(process.env.HOOKDECK_URL, req.body, {
       headers: "content-type: application/json",
     })
