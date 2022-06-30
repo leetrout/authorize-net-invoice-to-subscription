@@ -14,6 +14,7 @@ exports.subscriptionForInvoice = async (req, res) => {
     return;
   }
 
+  console.info("payload entity", req.body.payload.entityName);
   switch (req.body.payload.entityName) {
     case "subscription":
       return await addSubscriptionIds(req, res, [req.body.payload.id]);
@@ -29,6 +30,7 @@ exports.subscriptionForInvoice = async (req, res) => {
 };
 
 async function getTransaction(req, res, txID) {
+  console.info("getTransaction", txID);
   const merchantAuthenticationType =
     new ApiContracts.MerchantAuthenticationType();
   merchantAuthenticationType.setName(process.env.AUTH_API_LOGIN_ID);
@@ -59,11 +61,19 @@ async function getTransaction(req, res, txID) {
         response.getMessages().getResultCode() ==
         ApiContracts.MessageTypeEnum.OK
       ) {
-        return await getProfile(
-          req,
-          res,
-          response.getTransaction().getProfile().customerProfileId
-        );
+        const tx = response.getTransaction();
+        const sub = tx.getSubscription();
+        if (sub) {
+          console.info("found subscription on transaction", sub);
+          return await addSubscriptionIds(req, res, [sub.id]);
+        }
+        const prof = tx.getProfile();
+        if (prof) {
+          console.info("found profile on transaction", prof);
+          return await getProfile(req, res, prof.customerProfileId);
+        }
+        console.info("transaction data", tx);
+        console.error("transaction did not contain subscription or profile");
       } else {
         console.error(response.getMessages().getResultCode());
         console.error(response.getMessages().getMessage()[0].getText());
@@ -76,6 +86,7 @@ async function getTransaction(req, res, txID) {
 }
 
 async function getProfile(req, res, profileID) {
+  console.info("getProfile", profileID);
   const merchantAuthenticationType =
     new ApiContracts.MerchantAuthenticationType();
   merchantAuthenticationType.setName(process.env.AUTH_API_LOGIN_ID);
@@ -126,6 +137,7 @@ async function getProfile(req, res, profileID) {
 }
 
 async function addSubscriptionIds(req, res, subIDs) {
+  console.info("addSubscriptionIds", subIDs);
   req.body.subscriptionIds = subIDs;
   return axios
     .post(process.env.HOOKDECK_URL, req.body, {
@@ -137,6 +149,6 @@ async function addSubscriptionIds(req, res, subIDs) {
     })
     .catch((err) => {
       console.error(err);
-      res.status(500).send("error sending modified payload");
+      res.status(500).send("error sending modified payload", process.env.HOOKDECK_URL);
     });
 }
