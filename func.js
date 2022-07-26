@@ -74,6 +74,9 @@ async function getTransaction(req, res, txID) {
         }
         console.info("transaction data", tx);
         console.error("transaction did not contain subscription or profile");
+        // Don't error here
+        res.send("no transaction or profile");
+        return;
       } else {
         console.error(response.getMessages().getResultCode());
         console.error(response.getMessages().getMessage()[0].getText());
@@ -81,7 +84,7 @@ async function getTransaction(req, res, txID) {
     } else {
       console.error("Null Response.");
     }
-    res.status(400).send(`payment processor error`);
+    res.status(200).send(`payment processor error`);
   });
 }
 
@@ -132,7 +135,7 @@ async function getProfile(req, res, profileID) {
     } else {
       console.error("Null Response.");
     }
-    res.status(400).send(`payment processor error`);
+    res.status(200).send(`no subscription on profile`);
   });
 }
 
@@ -149,6 +152,8 @@ async function addSubscriptionIds(req, res, subIDs) {
     })
     .catch((err) => {
       console.error(err);
-      res.status(500).send("error sending modified payload", process.env.HOOKDECK_URL);
+      res
+        .status(500)
+        .send("error sending modified payload", process.env.HOOKDECK_URL);
     });
 }
